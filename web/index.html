@@ -1,0 +1,246 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>MagicTube</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                margin: 0;
+                padding: 0;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: 100vh;
+                background-color: #dddddd;
+            }
+
+            .container {
+                display: flex;
+                flex-direction: row;
+                width: 1440px;
+                height: 900px;
+                border: 1px solid #cccccc;
+                padding: 0;
+                background-color: #f4f4f9;
+            }
+            .player-container {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                flex-grow: 1;
+            }
+            #sidebar {
+                width: 350px;
+                padding-right: 2em;
+            }
+            #sidebar ul {
+                padding: 0 0 0 1em;
+            }
+            #sidebar li {
+                font-size: 12px;
+                margin: 0 0 2em 0;
+                list-style: none;
+                display: flex;
+            }
+            #sidebar li h3 {
+                margin: 0 0 0.5em 1em;
+                font-weight: normal;
+                line-height: 1.3;
+            }
+            #sidebar .thumbnail {
+                display: block;
+                flex-shrink: 0;
+                height: 60px;
+                width: 108px;
+                background-position: center;
+                background-repeat: no-repeat;
+                background-size: cover;
+                border: 1px solid #fff;
+                box-shadow: 5px 5px #5d27b0;
+            }
+            #player {
+                width: 900px;
+            }
+            iframe {
+                width: 100%;
+                height: 600px;
+                border: none;
+            }
+            .controls {
+                margin-top: 30px;
+                text-align: center;
+            }
+            input[type="text"] {
+                padding: 10px;
+                font-size: 16px;
+                width: 400px;
+            }
+            button {
+                padding: 10px 20px;
+                font-size: 16px;
+                margin-left: 10px;
+                cursor: pointer;
+            }
+            #the_code {
+                padding: 20px;
+                color: gray;
+                display: none;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div id="sidebar"></div>
+            <div class="player-container">
+                <div id="player"></div>
+                <div class="controls">
+                    <input
+                        type="text"
+                        id="videoIdInput"
+                        placeholder="Enter YouTube Video ID"
+                    />
+
+                    <button onclick="updateVideo()">Play</button>
+                    <button onclick="copyCode()">Copy</button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            const the_code =
+                'oncl=e=>{let t=e.querySelectorAll("a, #video-title-link")[0].href.match(/[?&]v=([^&]+)/)[1];t&&navigator.clipboard.writeText(t).then(()=>console.log(t)).catch(e=>console.error("Failed",e))},document.querySelectorAll("ytd-compact-video-renderer").forEach(e=>{let t=e.querySelector("div.details");t&&t.addEventListener("click",e=>oncl(t))}),document.querySelectorAll("#contents ytd-rich-grid-media").forEach(e=>{let t=e.querySelector("#button");t&&t.addEventListener("click",t=>oncl(e))});';
+
+            async function getLast10Videos(apiKey, videoId) {
+                try {
+                    const url = "https://www.googleapis.com/youtube/v3";
+                    // Step 1: Get channelId from the videoId
+                    const videoResponse = await fetch(
+                        `${url}/videos?part=snippet&id=${videoId}&key=${aey}` +
+                            "todo",
+                    );
+                    const videoData = await videoResponse.json();
+                    const channelId = videoData.items[0].snippet.channelId;
+
+                    // Step 2: Fetch the latest 10 videos from the channel
+                    const searchResponse = await fetch(
+                        `${url}/search?part=snippet&channelId=${channelId}&maxResults=10&order=date&type=video&key=${aey}` +
+                            "todo",
+                    );
+                    const searchData = await searchResponse.json();
+
+                    // Step 3: Extract video titles and IDs
+                    const videos = searchData.items.map((item) => ({
+                        title: item.snippet.title,
+                        id: item.id.videoId,
+                    }));
+
+                    const sidebar = document.getElementById("sidebar");
+                    const list = document.createElement("ul");
+
+                    videos.forEach((video) => {
+                        const listItem = document.createElement("li");
+                        const thumbnailUrl = `https://i.ytimg.com/vi/${video.id}/hq720.jpg?sqp=-oaymwEnCNAFEJQDSFryq4qpAxkIARUAAIhCGAHYAQHiAQoIGBACGAY4AUAB&rs=AOn4CLBl279lOWUivihwM5q5KArHM5maeA`;
+                        // const thumbnailUrl = `https://img.youtube.com/vi/${video.id}/0.jpg`;
+                        listItem.innerHTML = `<div class="thumbnail" style="background-image: url('${thumbnailUrl}')"></div><h3>${video.title}</h3>`;
+                        // <br/>${video.id}
+
+                        list.appendChild(listItem);
+                    });
+
+                    sidebar.innerHTML = "";
+                    sidebar.appendChild(list);
+                } catch (error) {
+                    alert("Error fetching videos");
+                    console.error("Error fetching videos:", error);
+                }
+            }
+
+            const aey = "AIzaSyBYX4lrK69RSW5ZWaturn4davwScZV";
+
+            document
+                .querySelector("input")
+                .addEventListener("keypress", (e) => {
+                    if (e.key === "Enter") {
+                        updateVideo();
+                    }
+                });
+
+            function copyCode(event) {
+                navigator.clipboard
+                    .writeText(the_code)
+                    .then(() => console.log("Copied to clipboard"))
+                    .catch((err) => console.error("Failed to copy:", err));
+            }
+
+            // Extract query parameter by name
+            function getQueryParam(param) {
+                const urlParams = new URLSearchParams(window.location.search);
+                return urlParams.get(param);
+            }
+
+            // Fetch the video ID from the "v" query parameter
+            const initialVideoId = getQueryParam("v");
+
+            // Set default value for the input field
+            document.addEventListener("DOMContentLoaded", () => {
+                const inputField = document.getElementById("videoIdInput");
+                if (initialVideoId) {
+                    inputField.value = initialVideoId;
+                }
+            });
+
+            // Load the IFrame Player API code asynchronously
+            const tag = document.createElement("script");
+            tag.src = "https://www.youtube.com/iframe_api";
+            const firstScriptTag = document.getElementsByTagName("script")[0];
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+            let player;
+
+            // Create the YouTube Player instance when API is ready
+            function onYouTubeIframeAPIReady() {
+                player = new YT.Player("player", {
+                    height: "390",
+                    width: "640",
+                    videoId: initialVideoId || "",
+                    playerVars: {
+                        playsinline: 1,
+                    },
+                    events: {
+                        onReady: onPlayerReady,
+                        onStateChange: onPlayerStateChange,
+                    },
+                });
+            }
+
+            // Auto-play the initial video
+            function onPlayerReady(event) {
+                if (initialVideoId) {
+                    event.target.playVideo();
+                }
+            }
+
+            // Video state change handler (optional)
+            function onPlayerStateChange(event) {
+                console.log(event);
+            }
+
+            // Update the video based on input
+            function updateVideo() {
+                const inputField = document.getElementById("videoIdInput");
+                const newVideoId = inputField.value.trim();
+
+                if (newVideoId) {
+                    getLast10Videos(aey, newVideoId);
+                    player.loadVideoById(newVideoId);
+                } else {
+                    alert("Please enter a valid YouTube video ID.");
+                }
+            }
+        </script>
+    </body>
+</html>
