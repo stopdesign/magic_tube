@@ -190,6 +190,8 @@
                 const inputField = document.getElementById("videoIdInput");
                 if (initialVideoId) {
                     inputField.value = initialVideoId;
+                    getLast10Videos(aey, videoId);
+                    player.playVideo();
                 }
             });
 
@@ -237,6 +239,7 @@
                 if (newVideoId) {
                     getLast10Videos(aey, newVideoId);
                     player.loadVideoById(newVideoId);
+                    player.playVideo();
                 } else {
                     alert("Please enter a valid YouTube video ID.");
                 }
