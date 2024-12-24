@@ -45,6 +45,10 @@
                 margin: 0 0 2em 0;
                 list-style: none;
                 display: flex;
+                cursor: pointer;
+                transition:
+                    transform 0.2s ease,
+                    box-shadow 0.2s ease;
             }
             #sidebar li h3 {
                 margin: 0 0 0.5em 1em;
@@ -61,6 +65,10 @@
                 background-size: cover;
                 border: 1px solid #fff;
                 box-shadow: 5px 5px #5d27b0;
+            }
+            #sidebar li:hover {
+                transform: scale(1.02);
+                box-shadow: 0 5px 15px #5d27b0;
             }
             #player {
                 width: 900px;
@@ -145,9 +153,11 @@
                         const listItem = document.createElement("li");
                         const thumbnailUrl = `https://i.ytimg.com/vi/${video.id}/hq720.jpg?sqp=-oaymwEnCNAFEJQDSFryq4qpAxkIARUAAIhCGAHYAQHiAQoIGBACGAY4AUAB&rs=AOn4CLBl279lOWUivihwM5q5KArHM5maeA`;
                         // const thumbnailUrl = `https://img.youtube.com/vi/${video.id}/0.jpg`;
-                        listItem.innerHTML = `<div class="thumbnail" style="background-image: url('${thumbnailUrl}')"></div><h3>${video.title}</h3>`;
+                        listItem.innerHTML = `<div class="thumbnail" style="background-image: url('${thumbnailUrl}')"></div><h3 class="video-title">${video.title}</h3>`;
                         // <br/>${video.id}
-
+                        listItem.addEventListener("click", () => {
+                            loadVideoById(video.id);
+                        });
                         list.appendChild(listItem);
                     });
 
@@ -156,6 +166,14 @@
                 } catch (error) {
                     alert("Error fetching videos");
                     console.error("Error fetching videos:", error);
+                }
+            }
+            function loadVideoById(videoId) {
+                if (player) {
+                    player.loadVideoById(videoId); // Load the video by its ID
+                    player.playVideo(); // Start autoplay
+                } else {
+                    console.error("Player instance not initialized.");
                 }
             }
 
