@@ -68,7 +68,7 @@
             }
             #sidebar li:hover {
                 transform: scale(1.02);
-                box-shadow: 0 5px 15px #5d27b0;
+                color: #5d27b0;
             }
             #player {
                 width: 900px;
@@ -170,8 +170,8 @@
             }
             function loadVideoById(videoId) {
                 if (player) {
-                    player.loadVideoById(videoId); // Load the video by its ID
-                    player.playVideo(); // Start autoplay
+                    player.loadVideoById(videoId);
+                    player.playVideo();
                 } else {
                     console.error("Player instance not initialized.");
                 }
