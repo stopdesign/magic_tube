@@ -36,6 +36,10 @@
             #sidebar {
                 width: 350px;
                 padding-right: 2em;
+                height: 100%;
+                overflow-y: auto;
+                overflow-x: hidden;
+                scrollbar-gutter: stable;
             }
             #sidebar ul {
                 padding: 0 0 0 1em;
@@ -56,6 +60,7 @@
                 line-height: 1.3;
             }
             #sidebar .thumbnail {
+                position: relative;
                 display: block;
                 flex-shrink: 0;
                 height: 60px;
@@ -69,6 +74,22 @@
             #sidebar li:hover {
                 transform: scale(1.02);
                 color: #5d27b0;
+            }
+            #sidebar .publish-time {
+                display: block;
+                font-size: 12px;
+                color: gray;
+                margin: 0 0 0.5em 1.3em;
+            }
+            #sidebar .duration-badge {
+                position: absolute;
+                bottom: 5px;
+                right: 5px;
+                background-color: rgba(0, 0, 0, 0.8);
+                color: white;
+                font-size: 10px;
+                padding: 2px 4px;
+                border-radius: 3px;
             }
             #player {
                 width: 900px;
@@ -117,7 +138,6 @@
                 </div>
             </div>
         </div>
-
         <script>
             const the_code =
                 'oncl=e=>{let t=e.querySelectorAll("a, #video-title-link")[0].href.match(/[?&]v=([^&]+)/)[1];t&&navigator.clipboard.writeText(t).then(()=>console.log(t)).catch(e=>console.error("Failed",e))},document.querySelectorAll("ytd-compact-video-renderer").forEach(e=>{let t=e.querySelector("div.details");t&&t.addEventListener("click",e=>oncl(t))}),document.querySelectorAll("#contents ytd-rich-grid-media").forEach(e=>{let t=e.querySelector("#button");t&&t.addEventListener("click",t=>oncl(e))});';
@@ -139,21 +159,61 @@
                             "todo",
                     );
                     const searchData = await searchResponse.json();
-
+                    console.log("channel id", channelId);
                     // Step 3: Extract video titles and IDs
                     const videos = searchData.items.map((item) => ({
                         title: item.snippet.title,
                         id: item.id.videoId,
+                        publishTime: item.snippet.publishTime.split("T")[0],
                     }));
-
+                    // Fetch video durations for all video IDs
+                    const videoIds = videos.map((video) => video.id).join(",");
+                    const detailsResponse = await fetch(
+                        `${url}/videos?part=contentDetails&id=${videoIds}&key=AIzaSyDKKIwmBwtZxFd4iaRRTZkh3R0xBYfkBAA`,
+                    );
+                    const detailsData = await detailsResponse.json();
+                    const durations = detailsData.items.map((item) => ({
+                        duration: item.contentDetails.duration,
+                        id: item.id,
+                    }));
+                    const durationMap = new Map(
+                        durations.map((d) => [d.id, d.duration]),
+                    );
                     const sidebar = document.getElementById("sidebar");
                     const list = document.createElement("ul");
+
+                    function formatDuration(duration) {
+                        // Match the duration format using regex
+                        const match = duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
+                        if (!match) return "0:00"; // Default to 0:00 if the duration format is invalid
+
+                        // Extract hours, minutes, and seconds
+                        const hours = match[1] ? parseInt(match[1]) : 0;
+                        const minutes = match[2] ? parseInt(match[2]) : 0;
+                        const seconds = match[3] ? parseInt(match[3]) : 0;
+
+                        // Format into HH:MM:SS or MM:SS
+                        if (hours > 0) {
+                            return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+                        } else {
+                            return `${minutes}:${String(seconds).padStart(2, "0")}`;
+                        }
+                    }
 
                     videos.forEach((video) => {
                         const listItem = document.createElement("li");
                         const thumbnailUrl = `https://i.ytimg.com/vi/${video.id}/hq720.jpg?sqp=-oaymwEnCNAFEJQDSFryq4qpAxkIARUAAIhCGAHYAQHiAQoIGBACGAY4AUAB&rs=AOn4CLBl279lOWUivihwM5q5KArHM5maeA`;
-                        // const thumbnailUrl = `https://img.youtube.com/vi/${video.id}/0.jpg`;
-                        listItem.innerHTML = `<div class="thumbnail" style="background-image: url('${thumbnailUrl}')"></div><h3 class="video-title">${video.title}</h3>`;
+                        const duration = durationMap.get(video.id) || null;
+                        const duration_clean = formatDuration(duration);
+                        listItem.innerHTML = `
+                            <div class="thumbnail" style="background-image: url('${thumbnailUrl}')">
+                                <span class="duration-badge">${duration_clean}</span>
+                            </div>
+                            <div>
+                                <h3 class="video-title">${video.title}</h3>
+                                <span class="publish-time">${video.publishTime}</span>
+                            </div>
+                        `;
                         // <br/>${video.id}
                         listItem.addEventListener("click", () => {
                             loadVideoById(video.id);
@@ -203,16 +263,6 @@
             // Fetch the video ID from the "v" query parameter
             const initialVideoId = getQueryParam("v");
 
-            // Set default value for the input field
-            document.addEventListener("DOMContentLoaded", () => {
-                const inputField = document.getElementById("videoIdInput");
-                if (initialVideoId) {
-                    inputField.value = initialVideoId;
-                    getLast10Videos(aey, initialVideoId);
-                    player.playVideo();
-                }
-            });
-
             // Load the IFrame Player API code asynchronously
             const tag = document.createElement("script");
             tag.src = "https://www.youtube.com/iframe_api";
@@ -220,7 +270,6 @@
             firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
             let player;
-
             // Create the YouTube Player instance when API is ready
             function onYouTubeIframeAPIReady() {
                 player = new YT.Player("player", {
@@ -249,6 +298,19 @@
                 console.log(event);
             }
 
+            // Set default value for the input field
+            document.addEventListener("DOMContentLoaded", () => {
+                const inputField = document.getElementById("videoIdInput");
+                if (initialVideoId) {
+                    inputField.value = initialVideoId;
+                    getLast10Videos(aey, initialVideoId);
+                    if (player) {
+                        player.playVideo(); // Play the video
+                    } else {
+                        console.error("YouTube player is not initialized.");
+                    }
+                }
+            });
             // Update the video based on input
             function updateVideo() {
                 const inputField = document.getElementById("videoIdInput");
