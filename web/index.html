@@ -155,11 +155,10 @@
 
                     // Step 2: Fetch the latest 10 videos from the channel
                     const searchResponse = await fetch(
-                        `${url}/search?part=snippet&channelId=${channelId}&maxResults=10&order=date&type=video&key=${aey}` +
+                        `${url}/search?part=snippet&channelId=${channelId}&maxResults=20&order=date&type=video&key=${aey}` +
                             "todo",
                     );
                     const searchData = await searchResponse.json();
-                    console.log("channel id", channelId);
                     // Step 3: Extract video titles and IDs
                     const videos = searchData.items.map((item) => ({
                         title: item.snippet.title,
@@ -203,9 +202,17 @@
 
                     videos.forEach((video) => {
                         const listItem = document.createElement("li");
-                        const thumbnailUrl = `https://i.ytimg.com/vi/${video.id}/hq720.jpg?sqp=-oaymwEnCNAFEJQDSFryq4qpAxkIARUAAIhCGAHYAQHiAQoIGBACGAY4AUAB&rs=AOn4CLBl279lOWUivihwM5q5KArHM5maeA`;
                         const duration = durationMap.get(video.id) || null;
                         const duration_clean = formatDuration(duration);
+                        // Filter out videos shorter than 2 minutes
+                        const [minutes, seconds] = duration_clean
+                            .split(":")
+                            .map(Number);
+                        if (minutes * 60 + seconds < 120) {
+                            return; // Skip this video
+                        }
+                        const thumbnailUrl = `https://i.ytimg.com/vi/${video.id}/hq720.jpg?sqp=-oaymwEnCNAFEJQDSFryq4qpAxkIARUAAIhCGAHYAQHiAQoIGBACGAY4AUAB&rs=AOn4CLBl279lOWUivihwM5q5KArHM5maeA`;
+
                         listItem.innerHTML = `
                             <div class="thumbnail" style="background-image: url('${thumbnailUrl}')">
                                 <span class="duration-badge">${duration_clean}</span>
