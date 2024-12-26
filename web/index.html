@@ -79,7 +79,7 @@
                 display: block;
                 font-size: 12px;
                 color: gray;
-                margin: 0 0 0.5em 1.3em;
+                margin: 0 0 0em 1.3em;
             }
             #sidebar .duration-badge {
                 position: absolute;
@@ -169,7 +169,8 @@
                     // Fetch video durations for all video IDs
                     const videoIds = videos.map((video) => video.id).join(",");
                     const detailsResponse = await fetch(
-                        `${url}/videos?part=contentDetails&id=${videoIds}&key=AIzaSyDKKIwmBwtZxFd4iaRRTZkh3R0xBYfkBAA`,
+                        `${url}/videos?part=contentDetails&id=${videoIds}&key=${aey}` +
+                            "todo",
                     );
                     const detailsData = await detailsResponse.json();
                     const durations = detailsData.items.map((item) => ({
