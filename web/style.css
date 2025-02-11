@@ -32,7 +32,6 @@ body {
     height: 100%;
     overflow-y: auto;
     overflow-x: hidden;
-    scrollbar-gutter: stable;
 }
 #sidebar ul {
     padding: 0 0 0 1em;

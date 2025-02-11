@@ -1,6 +1,9 @@
 const API_URL = "https://www.googleapis.com/youtube/v3";
 const API_KEY = window.API_KEY || "";
 
+// Link to check API quotas:
+// https://console.cloud.google.com/apis/api/youtube.googleapis.com/quotas
+
 // Helper: Fetch data from API
 async function fetchData(endpoint, params) {
     const url = `${API_URL}${endpoint}?${new URLSearchParams({ ...params, key: API_KEY })}`;
@@ -36,34 +39,22 @@ async function getChannelIdFromVideo(videoId) {
     return videoData.items[0]?.snippet.channelId || null;
 }
 
-// Step 2: Fetch video details (titles, durations, etc.)
-async function fetchVideosFromChannel(channelId, maxResults = 10) {
-    const searchData = await fetchData("/search", {
-        part: "snippet",
-        channelId,
-        videoEmbeddable: "true",
-        maxResults,
-        order: "date",
-        type: "video",
-    });
-
-    const videoIds = searchData.items.map((item) => item.id.videoId).join(",");
-    const detailsData = await fetchData("/videos", {
+async function fetchVideosFromChannel(channelId, maxResults = 50) {
+    // Fetch the uploads playlist ID for the channel
+    const channelData = await fetchData("/channels", {
         part: "contentDetails",
-        id: videoIds,
+        id: channelId,
     });
 
-    const durations = detailsData.items.reduce((map, item) => {
-        map[item.id] = item.contentDetails.duration;
-        return map;
-    }, {});
+    const uploadsPlaylistId =
+        channelData.items[0]?.contentDetails.relatedPlaylists.uploads;
 
-    return searchData.items.map((item) => ({
-        id: item.id.videoId,
-        title: item.snippet.title,
-        publishTime: item.snippet.publishTime.split("T")[0],
-        duration: durations[item.id.videoId] || null,
-    }));
+    if (!uploadsPlaylistId) {
+        console.error("Uploads playlist not found for channel", channelId);
+        return [];
+    }
+
+    return await fetchVideosFromPlaylist(uploadsPlaylistId, maxResults);
 }
 
 //Fetch videos from a playlist
