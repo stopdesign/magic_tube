@@ -13,9 +13,9 @@ body {
 .container {
     display: flex;
     flex-direction: row;
-    width: 1440px;
-    height: 900px;
-    border: 1px solid #cccccc;
+    width: 1430px;
+    height: 770px;
+    border: none;
     padding: 0;
     background-color: #f4f4f9;
 }
