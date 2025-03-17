@@ -203,6 +203,9 @@ function onPlay() {
         player.loadVideoById(videoId);
         player.playVideo();
         listVideosById(videoId);
+        const newUrl = `${window.location.origin}${window.location.pathname}?v=${videoId}`;
+        console.log("New URL:", newUrl);
+        window.history.pushState({ videoId }, "", newUrl);
         inputField.classList.remove("invalid");
     } else {
         inputField.classList.add("invalid");
