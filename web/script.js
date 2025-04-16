@@ -137,9 +137,9 @@ function getQueryParam(param) {
 }
 
 function extractVideoId(str) {
-    const regex = /\b[a-zA-Z0-9_-]{11}\b/;
+    const regex = /(?:v=([a-zA-Z0-9_-]{11}))/;
     const match = str.match(regex);
-    return match ? match[0] : null;
+    return match ? match[1] : null;
 }
 
 // Fetch the video ID from the "v" query parameter
