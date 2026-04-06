@@ -153,6 +153,8 @@ const firstScriptTag = document.getElementsByTagName("script")[0];
 firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
 let player;
+let playerReady = false;
+let autoplayBlocked = false;
 
 // Create the YouTube Player instance when API is ready
 window.onYouTubeIframeAPIReady = function () {
@@ -165,6 +167,9 @@ window.onYouTubeIframeAPIReady = function () {
             showinfo: 0,
             ecver: 2,
             controls: 1,
+            disablekb: 0,
+            enablejsapi: 1,
+            origin: location.origin,
         },
         events: {
             onReady: onPlayerReady,
@@ -176,18 +181,34 @@ window.onYouTubeIframeAPIReady = function () {
     function onPlayerReady(e) {
         const inputField = document.getElementById("videoIdInput");
         if (initialVideoId) {
-            inputField.value = initialVideoId;
+            if (inputField) inputField.value = initialVideoId;
+            // === Keep your previous behavior: try autoplay WITH sound ===
             player.playVideo();
+
+            // Fallback: detect if autoplay was blocked (still unstarted/cued after a short delay)
+            setTimeout(() => {
+                const state = player.getPlayerState();
+                // -1: unstarted, 5: video cued — treat these as "didn't actually start"
+                if (state === YT.PlayerState.UNSTARTED || state === YT.PlayerState.CUED) {
+                autoplayBlocked = true;
+                // Optional: you could show a hint in the UI like “Press Space/K to play”
+                }
+            }, 800);
+
             listVideosById(initialVideoId);
         }
-        // player.g.parentNode.style.width = "900px";
-        // player.g.style.height = "600px";
-    }
 
-    function onPlayerStateChange(event) {
-        console.log("onPlayerStateChange", event);
-    }
+        const iframe = player.getIframe?.();
+
+    playerReady = true;
+  }
+
+  function onPlayerStateChange(event) {
+    // No focusing/clicking iframe needed
+    console.log("onPlayerStateChange", event.data);
+  }
 };
+
 
 // Input changed, play video
 function onPlay() {
@@ -207,6 +228,7 @@ function onPlay() {
         console.log("New URL:", newUrl);
         window.history.pushState({ videoId }, "", newUrl);
         inputField.classList.remove("invalid");
+        autoplayBlocked = false;
     } else {
         inputField.classList.add("invalid");
     }
@@ -259,3 +281,87 @@ async function listVideosById(id, type = "auto") {
             "<p class=error>Error loading related videos.</p>";
     }
 }
+
+function isTypingInForm(el) {
+  if (!el) return false;
+  const tag = el.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA") return true;
+  if (el.isContentEditable) return true;
+  return false;
+}
+
+function togglePlayPause() {
+  const YTState = window.YT?.PlayerState;
+  if (!YTState) return;
+
+  // If autoplay was blocked, treat the first toggle as “play”
+  if (autoplayBlocked) {
+    autoplayBlocked = false;
+    player.playVideo();
+    return;
+  }
+
+  const state = player.getPlayerState();
+  if (state === YTState.PLAYING) player.pauseVideo();
+  else player.playVideo();
+}
+
+function seekBy(seconds) {
+  const t = Math.max(0, player.getCurrentTime() + seconds);
+  player.seekTo(t, true);
+}
+
+function setVolumeDelta(delta) {
+  const v = Math.max(0, Math.min(100, player.getVolume() + delta));
+  player.setVolume(v);
+}
+
+function toggleMute() {
+  if (player.isMuted()) player.unMute();
+  else player.mute();
+}
+
+function jumpToPercent(p) { // 0..100
+  const dur = player.getDuration();
+  if (dur > 0) player.seekTo((p / 100) * dur, true);
+}
+
+function fullscreenWrap() {
+  const iframe = player.getIframe();
+    iframe.requestFullscreen?.();
+}
+
+document.addEventListener("keydown", (e) => {
+  if (!playerReady) return;
+  if (isTypingInForm(document.activeElement)) return; // let the input work
+
+  const key = e.key.toLowerCase();
+
+  // Prevent page scroll for these keys (when not typing in input)
+  const prevent = [" ", "arrowleft", "arrowright", "arrowup", "arrowdown"];
+  if (prevent.includes(key)) e.preventDefault();
+
+  // Play/Pause: Space or K
+  if (key === " " || key === "k") { togglePlayPause(); return; }
+
+  // Seek: J / Left (-10s), L / Right (+10s)
+  if (key === "j" || key === "arrowleft") { seekBy(-10); return; }
+  if (key === "l" || key === "arrowright") { seekBy(10); return; }
+
+  // Volume: Up/Down (+/-5)
+  if (key === "arrowup") { setVolumeDelta(+5); return; }
+  if (key === "arrowdown") { setVolumeDelta(-5); return; }
+
+  // Mute
+  if (key === "m") { toggleMute(); return; }
+
+  // Fullscreen wrapper
+  if (key === "f") { fullscreenWrap(); return; }
+
+  // Number keys 0..9 -> 0..90%
+  if (/^[0-9]$/.test(key)) {
+    jumpToPercent(parseInt(key, 10) * 10);
+    return;
+  }
+});
+
