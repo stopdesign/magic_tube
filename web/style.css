@@ -30,6 +30,28 @@ body {
     width: 350px;
     padding-right: 2em;
     height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+#sidebar-search {
+    display: flex;
+    gap: 6px;
+    padding: 8px 0 8px 1em;
+    flex-shrink: 0;
+}
+#sidebar-search input[type="text"] {
+    flex: 1;
+    padding: 6px 8px;
+    font-size: 13px;
+    width: auto;
+}
+#sidebar-search button {
+    padding: 6px 12px;
+    font-size: 13px;
+    margin-left: 0;
+}
+#sidebar-list {
+    flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
 }
