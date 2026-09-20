@@ -234,9 +234,11 @@ function onPlay() {
     }
 }
 
+let currentChannelId = null;
+
 // Unified function to list videos based on input ID
 async function listVideosById(id, type = "auto") {
-    const container = document.getElementById("sidebar");
+    const container = document.getElementById("sidebar-list");
 
     try {
         if (type === "auto") {
@@ -259,14 +261,21 @@ async function listVideosById(id, type = "auto") {
                 const channelId = await getChannelIdFromVideo(id);
                 if (!channelId)
                     throw new Error("Channel ID not found for video ID");
+                currentChannelId = channelId;
                 videos = await fetchVideosFromChannel(channelId, 10);
                 break;
 
             case "playlistId":
+                const playlistData = await fetchData("/playlists", {
+                    part: "snippet",
+                    id,
+                });
+                currentChannelId = playlistData.items[0]?.snippet.channelId || null;
                 videos = await fetchVideosFromPlaylist(id);
                 break;
 
             case "channelId":
+                currentChannelId = id;
                 videos = await fetchVideosFromChannel(id, 10);
                 break;
 
@@ -279,6 +288,59 @@ async function listVideosById(id, type = "auto") {
         console.error(`Error listing videos for ID (${id}):`, error);
         container.innerHTML =
             "<p class=error>Error loading related videos.</p>";
+    }
+}
+
+const searchCache = new Map();
+
+async function searchInChannel(query) {
+    if (!currentChannelId || !query) return;
+    const container = document.getElementById("sidebar-list");
+    const cacheKey = `${currentChannelId}:${query}`;
+
+    if (searchCache.has(cacheKey)) {
+        renderVideos(searchCache.get(cacheKey), container);
+        return;
+    }
+
+    try {
+        const searchData = await fetchData("/search", {
+            part: "snippet",
+            channelId: currentChannelId,
+            q: query,
+            type: "video",
+            maxResults: 25,
+        });
+
+        if (!searchData.items.length) {
+            const errorEl = document.createElement("p");
+            errorEl.className = "error";
+            errorEl.textContent = "No videos found.";
+            container.prepend(errorEl);
+            return;
+        }
+
+        const videoIds = searchData.items.map((item) => item.id.videoId).join(",");
+        const detailsData = await fetchData("/videos", {
+            part: "contentDetails,snippet",
+            id: videoIds,
+        });
+
+        const videos = detailsData.items.map((item) => ({
+            id: item.id,
+            title: item.snippet.title,
+            publishTime: item.snippet.publishedAt.split("T")[0],
+            duration: item.contentDetails.duration,
+        }));
+
+        searchCache.set(cacheKey, videos);
+        renderVideos(videos, container);
+    } catch (error) {
+        console.error("Search error:", error);
+        const errorEl = document.createElement("p");
+        errorEl.className = "error";
+        errorEl.textContent = "Search failed.";
+        container.prepend(errorEl);
     }
 }
 
