@@ -7,8 +7,7 @@
   "content_scripts": [
     {
       "matches": ["https://*.youtube.com/*"],
-      "js": ["simple-notify.min.js", "content.js"],
-      "css": ["simple-notify.css"]
+      "js": ["content.js"]
     }
   ],
   "icons": {

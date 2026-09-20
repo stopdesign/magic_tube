@@ -406,9 +406,9 @@ document.addEventListener("keydown", (e) => {
   // Play/Pause: Space or K
   if (key === " " || key === "k") { togglePlayPause(); return; }
 
-  // Seek: J / Left (-10s), L / Right (+10s)
-  if (key === "j" || key === "arrowleft") { seekBy(-10); return; }
-  if (key === "l" || key === "arrowright") { seekBy(10); return; }
+  // Seek: J / Left (-3s), L / Right (+3s)
+  if (key === "j" || key === "arrowleft") { seekBy(-3); return; }
+  if (key === "l" || key === "arrowright") { seekBy(3); return; }
 
   // Volume: Up/Down (+/-5)
   if (key === "arrowup") { setVolumeDelta(+5); return; }
